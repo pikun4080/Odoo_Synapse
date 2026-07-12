@@ -24,29 +24,45 @@ const users = [
 ];
 
 export function AuthProvider({ children }) {
+
   const [user, setUser] = useState(() => {
+
     const saved = localStorage.getItem("user");
+
     return saved ? JSON.parse(saved) : null;
+
   });
 
   const login = (email, password) => {
+    console.log("Email entered:", `"${email}"`);
+    console.log("Password entered:", `"${password}"`);
+  
+    console.log("Users:", users);
+  
     const found = users.find(
       (u) =>
         u.email.trim().toLowerCase() === email.trim().toLowerCase() &&
         u.password.trim() === password.trim()
     );
-
-    if (!found) return false;
-
-    setUser(found);
+  
+    console.log("Found user:", found);
+  
+    if (!found) {
+      return false;
+    }
+  
     localStorage.setItem("user", JSON.stringify(found));
-
+    setUser(found);
+  
     return true;
   };
 
   const logout = () => {
+
     localStorage.removeItem("user");
+
     setUser(null);
+
   };
 
   return (
@@ -60,8 +76,11 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
+
 }
 
 export function useAuth() {
+
   return useContext(AuthContext);
+
 }
