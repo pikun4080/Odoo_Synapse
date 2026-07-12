@@ -1,11 +1,35 @@
 const drivers = require("../data/drivers");
 
 const getAllDrivers = (req, res) => {
-    res.status(200).json({
-        success: true,
-        count: drivers.length,
-        data: drivers
-    });
+    let result = [...drivers];
+
+const { search, status } = req.query;
+
+if (search) {
+
+    result = result.filter(driver =>
+        driver.name
+            .toLowerCase()
+            .includes(search.toLowerCase())
+    );
+
+}
+
+if (status) {
+
+    result = result.filter(driver =>
+        driver.status.toLowerCase() === status.toLowerCase()
+    );
+
+}
+
+return res.status(200).json({
+
+    success: true,
+    count: result.length,
+    data: result
+
+});
 };
 
 const addDriver = (req, res) => {
@@ -124,8 +148,61 @@ const updateDriver = (req, res) => {
     });
 };
 
+const getAvailableDrivers = (req, res) => {
+
+    const availableDrivers = drivers.filter(
+        driver => driver.status === "Available"
+    );
+
+    return res.status(200).json({
+
+        success: true,
+        count: availableDrivers.length,
+        data: availableDrivers
+
+    });
+
+};
+
+const getDriversOnDuty = (req, res) => {
+
+    const onDuty = drivers.filter(
+        driver => driver.status === "On Trip"
+    );
+
+    return res.status(200).json({
+
+        success: true,
+        count: onDuty.length,
+        data: onDuty
+
+    });
+
+};
+
+const getExpiredDrivers = (req, res) => {
+
+    const today = new Date();
+
+    const expired = drivers.filter(driver =>
+        new Date(driver.licenseExpiry) < today
+    );
+
+    return res.status(200).json({
+
+        success: true,
+        count: expired.length,
+        data: expired
+
+    });
+
+};
+
 module.exports = {
     getAllDrivers,
     addDriver,
-    updateDriver
+    updateDriver,
+    getAvailableDrivers,
+    getDriversOnDuty,
+    getExpiredDrivers
 };

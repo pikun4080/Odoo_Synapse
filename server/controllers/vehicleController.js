@@ -1,11 +1,43 @@
 const vehicles = require("../data/vehicles");
 
 const getAllVehicles = (req, res) => {
-    res.status(200).json({
-        success: true,
-        count: vehicles.length,
-        data: vehicles
-    });
+    let result = [...vehicles];
+
+const { search, status, type } = req.query;
+
+if (search) {
+
+    result = result.filter(vehicle =>
+        vehicle.registrationNumber
+            .toLowerCase()
+            .includes(search.toLowerCase())
+    );
+
+}
+
+if (status) {
+
+    result = result.filter(vehicle =>
+        vehicle.status.toLowerCase() === status.toLowerCase()
+    );
+
+}
+
+if (type) {
+
+    result = result.filter(vehicle =>
+        vehicle.type.toLowerCase() === type.toLowerCase()
+    );
+
+}
+
+return res.status(200).json({
+
+    success: true,
+    count: result.length,
+    data: result
+
+});
 };
 
 const addVehicle = (req, res) => {
@@ -104,8 +136,51 @@ const updateVehicle = (req, res) => {
     });
 };
 
+const getAvailableVehicles = (req, res) => {
+
+    const availableVehicles = vehicles.filter(
+        vehicle => vehicle.status === "Available"
+    );
+
+    return res.status(200).json({
+        success: true,
+        count: availableVehicles.length,
+        data: availableVehicles
+    });
+
+};
+
+const getVehicleStatusSummary = (req, res) => {
+
+    const summary = {
+
+        available: vehicles.filter(v => v.status === "Available").length,
+
+        onTrip: vehicles.filter(v => v.status === "On Trip").length,
+
+        maintenance: vehicles.filter(
+            v => v.status === "Maintenance"
+        ).length,
+
+        retired: vehicles.filter(
+            v => v.status === "Retired"
+        ).length
+
+    };
+
+    return res.status(200).json({
+
+        success: true,
+        data: summary
+
+    });
+
+};
+
 module.exports = {
     getAllVehicles,
     addVehicle,
-    updateVehicle
+    updateVehicle,
+    getAvailableVehicles,
+    getVehicleStatusSummary
 };
