@@ -1,14 +1,11 @@
-/**
- * Authentication Controller
- * Placeholder functions for authentication endpoints
- */
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
+const pool = require("../config/db");
+
 // Register User
 const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role_id } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
@@ -17,9 +14,13 @@ const register = async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    // Check existing user
+    const existingUser = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
 
-    if (existingUser) {
+    if (existingUser.rows.length > 0) {
       return res.status(409).json({
         success: false,
         message: "User already exists",
@@ -28,17 +29,32 @@ const register = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: role || "user",
-    });
+    // Split name into first and last name
+    const names = name.trim().split(" ");
+    const first_name = names[0];
+    const last_name = names.slice(1).join(" ") || "";
+
+    const result = await pool.query(
+      `INSERT INTO users
+      (first_name, last_name, username, email, password_hash, role_id)
+      VALUES ($1,$2,$3,$4,$5,$6)
+      RETURNING *`,
+      [
+        first_name,
+        last_name,
+        email.split("@")[0],
+        email,
+        hashedPassword,
+        role_id || 4,
+      ]
+    );
+
+    const user = result.rows[0];
 
     const token = jwt.sign(
       {
-        id: user._id,
-        role: user.role,
+        id: user.user_id,
+        role: user.role_id,
       },
       process.env.JWT_SECRET,
       {
@@ -51,10 +67,10 @@ const register = async (req, res) => {
       message: "User registered successfully",
       token,
       user: {
-        id: user._id,
-        name: user.name,
+        id: user.user_id,
+        name: `${user.first_name} ${user.last_name}`,
         email: user.email,
-        role: user.role,
+        role: user.role_id,
       },
     });
   } catch (error) {
@@ -62,18 +78,16 @@ const register = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Internal Server Error",
+      message: error.message,
     });
   }
 };
-
 
 // Login User
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
@@ -81,18 +95,21 @@ const login = async (req, res) => {
       });
     }
 
-    // Find user
-    const user = await User.findOne({ email });
+    const result = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
 
-    if (!user) {
+    if (result.rows.length === 0) {
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
       });
     }
 
-    // Compare password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const user = result.rows[0];
+
+    const isMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!isMatch) {
       return res.status(401).json({
@@ -101,11 +118,10 @@ const login = async (req, res) => {
       });
     }
 
-    // Generate JWT
     const token = jwt.sign(
       {
-        id: user._id,
-        role: user.role,
+        id: user.user_id,
+        role: user.role_id,
       },
       process.env.JWT_SECRET,
       {
@@ -118,13 +134,15 @@ const login = async (req, res) => {
       message: "Login successful",
       token,
       user: {
-        id: user._id,
-        name: user.name,
+        id: user.user_id,
+        name: `${user.first_name} ${user.last_name}`,
         email: user.email,
-        role: user.role,
+        role: user.role_id,
       },
     });
   } catch (error) {
+    console.error(error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -132,7 +150,7 @@ const login = async (req, res) => {
   }
 };
 
-// Get User Profile
+// Profile
 const profile = async (req, res) => {
   try {
     return res.status(200).json({
@@ -142,10 +160,11 @@ const profile = async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: "Server Error",
+      message: error.message,
     });
   }
 };
+
 module.exports = {
   register,
   login,
