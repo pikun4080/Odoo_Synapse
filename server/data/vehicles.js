@@ -11,14 +11,15 @@ const vehicles = [
     registrationNumber: "GJ01XY5678",
     type: "Van",
     capacity: 3000,
-    status: "Maintenance"
+    status: "Available"
+    
   },
   {
     id: 3,
     registrationNumber: "DL09PQ7890",
     type: "Trailer",
     capacity: 25000,
-    status: "On Trip"
+    status: "Available"
   }
 ];
 
