@@ -2,11 +2,25 @@ const maintenance = require("../data/maintenance");
 const vehicles = require("../data/vehicles");
 
 const getMaintenance = (req, res) => {
-    res.status(200).json({
-        success: true,
-        count: maintenance.length,
-        data: maintenance
-    });
+    let result = [...maintenance];
+
+const { status } = req.query;
+
+if (status) {
+
+    result = result.filter(record =>
+        record.status.toLowerCase() === status.toLowerCase()
+    );
+
+}
+
+return res.status(200).json({
+
+    success: true,
+    count: result.length,
+    data: result
+
+});
 };
 const createMaintenance = (req, res) => {
 
@@ -92,8 +106,42 @@ const completeMaintenance = (req, res) => {
     });
 };
 
+const getActiveMaintenance = (req, res) => {
+
+    const active = maintenance.filter(
+        record => record.status === "Active"
+    );
+
+    return res.status(200).json({
+
+        success: true,
+        count: active.length,
+        data: active
+
+    });
+
+};
+
+const getCompletedMaintenance = (req, res) => {
+
+    const completed = maintenance.filter(
+        record => record.status === "Completed"
+    );
+
+    return res.status(200).json({
+
+        success: true,
+        count: completed.length,
+        data: completed
+
+    });
+
+};
+
 module.exports = {
     getMaintenance,
     createMaintenance,
-    completeMaintenance
+    completeMaintenance,
+    getActiveMaintenance,
+    getCompletedMaintenance
 };

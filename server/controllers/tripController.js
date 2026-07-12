@@ -3,11 +3,47 @@ const vehicles = require("../data/vehicles");
 const drivers = require("../data/drivers");
 
 const getAllTrips = (req, res) => {
-    res.status(200).json({
-        success: true,
-        count: trips.length,
-        data: trips
-    });
+    let result = [...trips];
+
+const {
+
+    status,
+    origin,
+    destination
+
+} = req.query;
+
+if (status) {
+
+    result = result.filter(trip =>
+        trip.status.toLowerCase() === status.toLowerCase()
+    );
+
+}
+
+if (origin) {
+
+    result = result.filter(trip =>
+        trip.origin.toLowerCase() === origin.toLowerCase()
+    );
+
+}
+
+if (destination) {
+
+    result = result.filter(trip =>
+        trip.destination.toLowerCase() === destination.toLowerCase()
+    );
+
+}
+
+return res.status(200).json({
+
+    success: true,
+    count: result.length,
+    data: result
+
+});
 };
 
 const createTrip = (req, res) => {
