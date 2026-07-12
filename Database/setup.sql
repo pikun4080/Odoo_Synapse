@@ -1,12 +1,17 @@
+DROP TABLE IF EXISTS expenses CASCADE;
+DROP TABLE IF EXISTS fuel_logs CASCADE;
+DROP TABLE IF EXISTS maintenance_logs CASCADE;
+DROP TABLE IF EXISTS trips CASCADE;
+DROP TABLE IF EXISTS vehicles CASCADE;
+DROP TABLE IF EXISTS drivers CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
 DROP TABLE IF EXISTS roles CASCADE;
-
 
 -- ============================================================
 -- 1. ROLES TABLE
 -- Lookup table for user permissions/roles (e.g., Admin, Manager)
 -- ============================================================
-CREATE table if not exists  roles (
+CREATE TABLE IF NOT EXISTS roles (
     role_id SERIAL PRIMARY KEY,
     role_name VARCHAR(50) UNIQUE NOT NULL,
     description TEXT
@@ -16,45 +21,52 @@ CREATE table if not exists  roles (
 -- 2. USERS TABLE
 -- Core system users. Links to Roles via role_id.
 -- ============================================================
-CREATE table if not exists  users (
+CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    username VARCHAR(50) UNIQUE,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255),
     role_id INT REFERENCES roles(role_id) ON DELETE SET NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ============================================================
 -- 3. DRIVERS TABLE
--- Links a driver profile to a specific system user (1-to-1).
+-- Standalone driver profiles (optionally linked to a system user).
 -- ============================================================
-CREATE TABLE drivers (
+CREATE TABLE IF NOT EXISTS drivers (
     driver_id SERIAL PRIMARY KEY,
-    user_id INT UNIQUE REFERENCES users(user_id) ON DELETE CASCADE,
+    user_id INT UNIQUE REFERENCES users(user_id) ON DELETE SET NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
     license_number VARCHAR(100) UNIQUE NOT NULL,
-    license_expiry DATE NOT NULL,
+    phone_number VARCHAR(30),
+    hire_date DATE NOT NULL,
+    license_expiry DATE,
     status VARCHAR(20) DEFAULT 'Active'
 );
 
 -- ============================================================
 -- 4. VEHICLES TABLE
--- Includes the requested UNIQUE constraint on registration_number.
 -- ============================================================
-CREATE TABLE vehicles (
+CREATE TABLE IF NOT EXISTS vehicles (
     vehicle_id SERIAL PRIMARY KEY,
-    registration_number VARCHAR(50) UNIQUE NOT NULL,
     make VARCHAR(50) NOT NULL,
     model VARCHAR(50) NOT NULL,
-    manufacturing_year INT NOT NULL,
-    status VARCHAR(20) DEFAULT 'Active'
+    year INT NOT NULL,
+    license_plate VARCHAR(50) UNIQUE NOT NULL,
+    vin VARCHAR(50) UNIQUE NOT NULL,
+    current_status VARCHAR(20) DEFAULT 'Available'
+        CHECK (current_status IN ('Available', 'On Trip', 'In Shop', 'Retired'))
 );
 
 -- ============================================================
 -- 5. TRIPS TABLE
 -- Links to both Vehicles and Drivers.
 -- ============================================================
-CREATE TABLE trips (
+CREATE TABLE IF NOT EXISTS trips (
     trip_id SERIAL PRIMARY KEY,
     vehicle_id INT NOT NULL REFERENCES vehicles(vehicle_id) ON DELETE CASCADE,
     driver_id INT REFERENCES drivers(driver_id) ON DELETE SET NULL,
@@ -67,9 +79,8 @@ CREATE TABLE trips (
 
 -- ============================================================
 -- 6. MAINTENANCE LOGS TABLE
--- Tracks servicing and repairs for specific vehicles.
 -- ============================================================
-CREATE TABLE maintenance_logs (
+CREATE TABLE IF NOT EXISTS maintenance_logs (
     log_id SERIAL PRIMARY KEY,
     vehicle_id INT NOT NULL REFERENCES vehicles(vehicle_id) ON DELETE CASCADE,
     service_date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -80,9 +91,8 @@ CREATE TABLE maintenance_logs (
 
 -- ============================================================
 -- 7. FUEL LOGS TABLE
--- Tracks fuel consumption per vehicle and driver.
 -- ============================================================
-CREATE TABLE fuel_logs (
+CREATE TABLE IF NOT EXISTS fuel_logs (
     fuel_id SERIAL PRIMARY KEY,
     vehicle_id INT NOT NULL REFERENCES vehicles(vehicle_id) ON DELETE CASCADE,
     driver_id INT REFERENCES drivers(driver_id) ON DELETE SET NULL,
@@ -94,9 +104,8 @@ CREATE TABLE fuel_logs (
 
 -- ============================================================
 -- 8. EXPENSES TABLE
--- General expenses that can be tied to a specific trip or vehicle.
 -- ============================================================
-CREATE TABLE expenses (
+CREATE TABLE IF NOT EXISTS expenses (
     expense_id SERIAL PRIMARY KEY,
     vehicle_id INT REFERENCES vehicles(vehicle_id) ON DELETE CASCADE,
     trip_id INT REFERENCES trips(trip_id) ON DELETE SET NULL,
