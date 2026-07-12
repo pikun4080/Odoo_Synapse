@@ -64,7 +64,68 @@ if (new Date(licenseExpiry) < today) {
     });
 };
 
+const updateDriver = (req, res) => {
+    const id = Number(req.params.id);
+
+    const driver = drivers.find(d => d.id === id);
+
+    if (!driver) {
+        return res.status(404).json({
+            success: false,
+            message: "Driver not found."
+        });
+    }
+
+    const {
+        name,
+        licenseNumber,
+        licenseExpiry,
+        contact,
+        status
+    } = req.body;
+
+    if (licenseNumber) {
+
+        const duplicate = drivers.find(d =>
+            d.licenseNumber === licenseNumber &&
+            d.id !== id
+        );
+
+        if (duplicate) {
+            return res.status(400).json({
+                success: false,
+                message: "License number already exists."
+            });
+        }
+
+        driver.licenseNumber = licenseNumber;
+    }
+
+    if (licenseExpiry) {
+        driver.licenseExpiry = licenseExpiry;
+    }
+
+    if (name) {
+        driver.name = name;
+    }
+
+    if (contact) {
+        driver.contact = contact;
+    }
+
+    if (status) {
+        driver.status = status;
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "Driver updated successfully.",
+        data: driver
+    });
+};
+
 module.exports = {
     getAllDrivers,
-    addDriver
+    addDriver,
+    updateDriver
 };

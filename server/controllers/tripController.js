@@ -15,10 +15,19 @@ const createTrip = (req, res) => {
         vehicleId,
         driverId,
         origin,
-        destination
+        destination,
+        cargoWeight,
+        plannedDistance
     } = req.body;
 
-    if (!vehicleId || !driverId || !origin || !destination) {
+    if (
+        !vehicleId ||
+        !driverId ||
+        !origin ||
+        !destination ||
+        cargoWeight == null ||
+        plannedDistance == null
+    ) {
         return res.status(400).json({
             success: false,
             message: "All fields are required."
@@ -34,6 +43,24 @@ const createTrip = (req, res) => {
         });
     }
 
+
+    if (
+        vehicle.status === "Maintenance" ||
+        vehicle.status === "Retired"
+    ) {
+        return res.status(400).json({
+            success: false,
+            message: "Vehicle is not available for dispatch."
+        });
+    }
+
+    if (cargoWeight > vehicle.capacity) {
+        return res.status(400).json({
+            success: false,
+            message: "Cargo weight exceeds vehicle capacity."
+        });
+    }
+
     const driver = drivers.find(d => d.id === driverId);
 
     if (!driver) {
@@ -42,6 +69,13 @@ const createTrip = (req, res) => {
             message: "Driver not found."
         });
     }
+
+    if (driver.status === "Suspended") {
+    return res.status(400).json({
+        success: false,
+        message: "Suspended driver cannot be assigned."
+    });
+}
 
     const vehicleBusy = trips.find(
         trip =>
@@ -70,13 +104,15 @@ const createTrip = (req, res) => {
     }
 
     const newTrip = {
-        id: trips.length + 1,
-        vehicleId,
-        driverId,
-        origin,
-        destination,
-        status: "Ongoing"
-    };
+    id: trips.length + 1,
+    vehicleId,
+    driverId,
+    origin,
+    destination,
+    cargoWeight,
+    plannedDistance,
+    status: "Ongoing"
+};
 
     trips.push(newTrip);
 
@@ -128,8 +164,56 @@ const completeTrip = (req, res) => {
     });
 };
 
+const cancelTrip = (req, res) => {
+    const id = Number(req.params.id);
+
+    const trip = trips.find(t => t.id === id);
+
+    if (!trip) {
+        return res.status(404).json({
+            success: false,
+            message: "Trip not found."
+        });
+    }
+
+    if (trip.status === "Completed") {
+        return res.status(400).json({
+            success: false,
+            message: "Completed trip cannot be cancelled."
+        });
+    }
+
+    if (trip.status === "Cancelled") {
+        return res.status(400).json({
+            success: false,
+            message: "Trip already cancelled."
+        });
+    }
+
+    trip.status = "Cancelled";
+
+    const vehicle = vehicles.find(v => v.id === trip.vehicleId);
+
+    if (vehicle) {
+        vehicle.status = "Available";
+    }
+
+    const driver = drivers.find(d => d.id === trip.driverId);
+
+    if (driver) {
+        driver.status = "Available";
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "Trip cancelled successfully.",
+        data: trip
+    });
+};
+
 module.exports = {
     getAllTrips,
     createTrip,
-    completeTrip
+    completeTrip,
+    cancelTrip
 };

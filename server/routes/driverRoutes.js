@@ -3,10 +3,12 @@ const router = express.Router();
 
 const {
     getAllDrivers,
-    addDriver
+    addDriver,
+    updateDriver
 } = require("../controllers/driverController");
 
 router.get("/", getAllDrivers);
 router.post("/", addDriver);
+router.patch("/:id", updateDriver);
 
 module.exports = router;
